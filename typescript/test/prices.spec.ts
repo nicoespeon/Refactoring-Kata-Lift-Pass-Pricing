@@ -1,22 +1,36 @@
 import { assert, expect } from "chai";
 import request from "supertest-as-promised";
+import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { createApp } from "../src/prices";
 
 describe("prices", () => {
-  let app, connection;
+  let app, connection, container: StartedTestContainer;
+
+  before(async () => {
+    container = await new GenericContainer("mariadb:10.4")
+      .withExposedPorts({ container: 3306, host: 3306 })
+      .withEnv("MYSQL_ROOT_PASSWORD", "mysql")
+      .withBindMount(`${__dirname}/database`, "/docker-entrypoint-initdb.d")
+      .start();
+  });
+
+  after(function () {
+    container.stop();
+  });
 
   beforeEach(async () => {
     ({ app, connection } = await createApp());
   });
 
-  afterEach(function () {
+  afterEach(() => {
     connection.close();
   });
 
   it("does something", async () => {
     const response = await request(app).get("/prices?type=1jour");
 
-    var exptectedResult = { cost: 35 }; // change this to make the test pass
-    expect(response.body).deep.equal(exptectedResult);
+    const expectedResult = { cost: 35 };
+
+    expect(response.body).deep.equal(expectedResult);
   });
 });

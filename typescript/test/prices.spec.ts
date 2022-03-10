@@ -3,6 +3,13 @@ import request from "supertest-as-promised";
 import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { createApp } from "../src/prices";
 
+type TestCase = {
+  type: '1jour' | 'night',
+  age?: number | undefined,
+  date?: Date | undefined,
+  expectedCost: number,
+}
+
 describe("prices", () => {
   let app, connection, container: StartedTestContainer;
 
@@ -26,124 +33,75 @@ describe("prices", () => {
     connection.close();
   });
 
-  it("returns 35 for 1jour", async () => {
-    const response = await request(app).get("/prices?type=1jour");
 
-    const expectedResult = { cost: 35 };
-
-    expect(response.body).deep.equal(expectedResult);
+  describe('when type is night', () => {
+    const nightTestCases: TestCase[] = [
+      { type: 'night', expectedCost: 0 },
+      { type: 'night', expectedCost: 19, age: 14 },
+      { type: 'night', expectedCost: 8, age: 65 },
+      { type: 'night', expectedCost: 0, age: 5 },
+    ];
+    runTestCases(nightTestCases);
   });
 
-  it("returns 0 for night", async () => {
-    const response = await request(app).get("/prices?type=night");
+  describe('when type is 1jour', () => {
+    const dayTestCases: TestCase[] = [
+      { type: '1jour', expectedCost: 35 },
+      { type: '1jour', expectedCost: 25, age: 14 },
+      { type: '1jour', expectedCost: 27, age: 65 },
+      { type: '1jour', expectedCost: 35, age: 64 },
+      { type: '1jour', expectedCost: 35, age: 15 },
+    ];
+    runTestCases(dayTestCases);
 
-    const expectedResult = { cost: 0 };
+    const monday1 = new Date('2022-02-21T12:00:00');
+    const monday2 = new Date('2022-02-21T12:00:00');
+    const holidayMonday1 = new Date('2019-02-18T12:00:00');
+    const holidayMonday2 = new Date('2019-02-25T12:00:00');
+    const holidayMonday3 = new Date('2019-03-04T12:00:00');
 
-    expect(response.body).deep.equal(expectedResult);
+    describe('when date is a monday', () => {
+      const mondayTestCases: TestCase[] = [
+        { type: '1jour', expectedCost: 23, age: 15, date: monday1 },
+        { type: '1jour', expectedCost: 23, age: 15, date: monday2 },
+        { type: '1jour', expectedCost: 35, age: 15, date: holidayMonday1 },
+        { type: '1jour', expectedCost: 35, age: 15, date: holidayMonday2 },
+        { type: '1jour', expectedCost: 35, age: 15, date: holidayMonday3 },
+      ];
+      runTestCases(mondayTestCases);
+    })
+
+    const sunday = new Date('2022-02-20T12:00:00');
+    describe('when date is a sunday', () => {
+      const sundayTestCase: TestCase = { type: '1jour', expectedCost: 35, age: 15, date: sunday };
+      runTestCase(sundayTestCase);
+    });
   });
 
-  it("returns 19 for night and age is 14", async () => {
-    const response = await request(app).get("/prices?type=night&age=14");
+  function runTestCases(testCases: TestCase[]) {
+    for (const testCase of testCases) {
+      runTestCase(testCase);
+    }
+  }
 
-    const expectedResult = { cost: 19 };
+  function runTestCase(testCase: TestCase) {
+    let description = `returns ${testCase.expectedCost}`;
+    description = testCase.age ? `${description} - age is ${testCase.age}` : description;
+    description = testCase.date ? `${description} and date is ${testCase.date}` : description;
 
-    expect(response.body).deep.equal(expectedResult);
-  });
+    it(description, async () => {
+      let pricesQuery = `/prices?type=${testCase.type}`;
+      if (testCase.age) {
+        pricesQuery = `${pricesQuery}&age=${testCase.age}`;
+      }
+      if (testCase.date) {
+        pricesQuery = `${pricesQuery}&date=${testCase.date.toISOString()}`;
+      }
+      const response = await request(app).get(pricesQuery);
 
-  it("returns 8 for night and age is 65", async () => {
-    const response = await request(app).get("/prices?type=night&age=65");
+      const expectedResult = { cost: testCase.expectedCost };
 
-    const expectedResult = { cost: 8 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 0 for night and age is 5", async () => {
-    const response = await request(app).get("/prices?type=night&age=5");
-
-    const expectedResult = { cost: 0 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 8 for 1jour and age is 14", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=14");
-
-    const expectedResult = { cost: 25 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 27 for 1jour and age is 65", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=65");
-
-    const expectedResult = { cost: 27 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-
-  it("returns 35 for 1jour and age is 64", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=64");
-
-    const expectedResult = { cost: 35 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 35 for 1jour and age is 15", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=15");
-
-    const expectedResult = { cost: 35 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 23 for 1jour and age is 15 on 2022-02-22", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=15&date=2022-02-22");
-
-    const expectedResult = { cost: 23 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 23 for 1jour and age is 15 on 2022-02-29", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=15&date=2022-02-29");
-
-    const expectedResult = { cost: 23 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 35 for 1jour and age is 15 on 2022-02-28", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=15&date=2022-02-28");
-
-    const expectedResult = { cost: 35 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 35 for 1jour and age is 15 on 2019-02-18", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=15&date=2019-02-18T05:00:00.000Z");
-
-    const expectedResult = { cost: 35 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 35 for 1jour and age is 15 on 2019-02-25", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=15&date=2019-02-25T05:00:00.000Z");
-
-    const expectedResult = { cost: 35 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
-
-  it("returns 23 for 1jour and age is 15 on 2019-02-04", async () => {
-    const response = await request(app).get("/prices?type=1jour&age=15&date=2019-02-04T05:00:00.000Z");
-
-    const expectedResult = { cost: 23 };
-
-    expect(response.body).deep.equal(expectedResult);
-  });
+      expect(response.body).deep.equal(expectedResult);
+    });
+  }
 });

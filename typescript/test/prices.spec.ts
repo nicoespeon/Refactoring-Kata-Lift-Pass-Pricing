@@ -8,7 +8,7 @@ describe("prices", () => {
 
   before(async () => {
     container = await new GenericContainer("mariadb:10.4")
-      .withExposedPorts({ container: 3306, host: 3306 })
+      .withExposedPorts(3306)
       .withEnv("MYSQL_ROOT_PASSWORD", "mysql")
       .withBindMount(`${__dirname}/database`, "/docker-entrypoint-initdb.d")
       .start();
@@ -19,7 +19,7 @@ describe("prices", () => {
   });
 
   beforeEach(async () => {
-    ({ app, connection } = await createApp());
+    ({ app, connection } = await createApp({ port: container.getMappedPort(3306) }));
   });
 
   afterEach(() => {

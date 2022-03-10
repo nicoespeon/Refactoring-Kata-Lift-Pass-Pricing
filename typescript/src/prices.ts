@@ -1,7 +1,7 @@
 import express from "express";
 import mysql from "mysql2/promise";
 
-async function createApp() {
+async function createApp({ port }: { port: number } = { port: 3306 }) {
   const app = express();
 
   let connectionOptions = {
@@ -9,6 +9,7 @@ async function createApp() {
     user: "root",
     database: "lift_pass",
     password: "mysql",
+    port,
   };
   const connection = await mysql.createConnection(connectionOptions);
 

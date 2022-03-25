@@ -34,8 +34,10 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
       )
     )[0][0];
 
+    let { cost } = result;
+
     if (age < 6) {
-      res.json({ cost: 0 });
+      cost = 0;
     } else {
       if (type !== "night") {
         const holidays = (
@@ -64,33 +66,30 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
 
         // TODO apply reduction for others
         if (age < 15) {
-          res.json({ cost: Math.ceil(result.cost * 0.7) });
+          cost = Math.ceil(result.cost * 0.7);
         } else {
           if (age === undefined) {
-            let cost = result.cost * (1 - reduction / 100);
-            res.json({ cost: Math.ceil(cost) });
+            cost = Math.ceil(result.cost * (1 - reduction / 100));
           } else {
             if (age > 64) {
-              let cost = result.cost * 0.75 * (1 - reduction / 100);
-              res.json({ cost: Math.ceil(cost) });
+              cost = Math.ceil(result.cost * 0.75 * (1 - reduction / 100));
             } else {
-              let cost = result.cost * (1 - reduction / 100);
-              res.json({ cost: Math.ceil(cost) });
+              cost = Math.ceil(result.cost * (1 - reduction / 100));
             }
           }
         }
       } else {
         if (age >= 6) {
           if (age > 64) {
-            res.json({ cost: Math.ceil(result.cost * 0.4) });
-          } else {
-            res.json(result);
+            cost = Math.ceil(result.cost * 0.4);
           }
         } else {
-          res.json({ cost: 0 });
+          cost = 0
         }
       }
     }
+
+    res.json({cost})
   });
   return { app, connection };
 }

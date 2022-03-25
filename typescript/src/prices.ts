@@ -13,6 +13,8 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
   };
   const connection = await mysql.createConnection(connectionOptions);
 
+  const repository: Repository = createRepository(connection);
+
   app.put("/prices", async (req, res) => {
     const liftPassCost = req.query.cost;
     const liftPassType = req.query.type;
@@ -27,12 +29,7 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
   app.get("/prices", async (req, res) => {
     const { type, date, age } = req.query;
 
-    const result = (
-      await connection.query(
-        "SELECT cost FROM `base_price` " + "WHERE `type` = ? ",
-        [type]
-      )
-    )[0][0];
+    const result = await repository.getBasePrice(type);
 
     let { cost } = result;
 
@@ -40,9 +37,7 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
       cost = 0;
     } else {
       if (type !== "night") {
-        const holidays = (
-          await connection.query("SELECT * FROM `holidays`")
-        )[0];
+        const holidays = await repository.getHolidays();
 
         let isHoliday;
         let reduction = 0;
@@ -89,9 +84,35 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
       }
     }
 
-    res.json({cost})
+    res.json({ cost })
   });
   return { app, connection };
+}
+
+function createRepository(connection: any) {
+  return new RepositoryUsingMySQL(connection);
+}
+
+class RepositoryUsingMySQL implements Repository {
+  constructor(private readonly connection) { }
+
+  async getHolidays() {
+    const result = await this.connection.query("SELECT * FROM `holidays`");
+    return result[0];
+  }
+
+  async getBasePrice(type: string) {
+    const result = await this.connection.query(
+      "SELECT cost FROM `base_price` " + "WHERE `type` = ? ",
+      [type]
+    );
+    return result[0][0];
+  }
+}
+
+interface Repository {
+  getHolidays();
+  getBasePrice(type: string);
 }
 
 export { createApp };

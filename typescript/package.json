@@ -6,6 +6,8 @@
   "scripts": {
     "start": "tsc && node .",
     "test": "tsc && nyc node_modules/.bin/mocha -r ts-node/register -r source-map-support/register --recursive test/**/*.spec.ts --timeout 15000",
+    "test:unit": "mocha -r ts-node/register src/**/*.spec.ts",
+    "test:unit:watch": "mocha -r ts-node/register src/**/*.spec.ts --watch --watch-extensions ts --reporter min",
     "report": "serve -s coverage -p 8081",
     "compile": "tsc"
   },

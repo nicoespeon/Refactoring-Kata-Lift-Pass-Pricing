@@ -63,6 +63,7 @@ describe("prices", () => {
 
     describe("when date is a monday", () => {
       const mondayTestCases: TestCase[] = [
+        { type: "1jour", expectedCost: 23, date: monday1 },
         { type: "1jour", expectedCost: 23, age: 15, date: monday1 },
         { type: "1jour", expectedCost: 23, age: 15, date: monday2 },
         { type: "1jour", expectedCost: 35, age: 15, date: holidayMonday1 },

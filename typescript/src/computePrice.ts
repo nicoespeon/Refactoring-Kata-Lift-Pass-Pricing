@@ -1,14 +1,14 @@
 import { Repository } from "./repository";
 
 export async function computePrice(
-  { age, type, date }: { age: number; type: "1jour" | "night"; date: string },
+  { age, type, date }: { age?: number; type: "1jour" | "night"; date: string },
   repository: Repository
 ): Promise<number> {
   const result = await repository.getBasePrice(type);
 
   let { cost } = result;
 
-  if (age < 6) {
+  if (typeof age === "number" && age < 6) {
     cost = 0;
   } else {
     if (type !== "night") {
@@ -35,7 +35,7 @@ export async function computePrice(
       }
 
       // TODO apply reduction for others
-      if (age < 15) {
+      if (typeof age === "number" && age < 15) {
         cost = Math.ceil(result.cost * 0.7);
       } else {
         if (age === undefined) {
@@ -49,7 +49,7 @@ export async function computePrice(
         }
       }
     } else {
-      if (age >= 6) {
+      if (typeof age === "number" && age >= 6) {
         if (age > 64) {
           cost = Math.ceil(result.cost * 0.4);
         }

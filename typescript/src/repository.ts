@@ -1,4 +1,4 @@
 export interface Repository {
   getHolidays();
-  getBasePrice(type: string);
+  getBasePrice(type: string): Promise<{ cost: number }>;
 }

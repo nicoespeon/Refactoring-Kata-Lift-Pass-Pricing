@@ -3,7 +3,7 @@ import { Repository } from "./repository";
 export async function computePrice(
   { age, type, date }: { age: number; type: "1jour" | "night"; date: string },
   repository: Repository
-) {
+): Promise<number> {
   const result = await repository.getBasePrice(type);
 
   let { cost } = result;

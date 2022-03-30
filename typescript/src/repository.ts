@@ -1,4 +1,8 @@
 export interface Repository {
-  getHolidays();
+  getHolidays(): Promise<Holiday[]>;
   getBasePrice(type: string): Promise<{ cost: number }>;
+}
+
+export interface Holiday {
+  holiday: Date;
 }

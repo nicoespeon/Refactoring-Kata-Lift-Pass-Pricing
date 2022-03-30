@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "tsc && node .",
-    "test": "nyc node_modules/.bin/mocha -r ts-node/register -r source-map-support/register --recursive test/**/*.spec.ts --timeout 15000",
+    "test": "tsc && nyc node_modules/.bin/mocha -r ts-node/register -r source-map-support/register --recursive test/**/*.spec.ts --timeout 15000",
     "report": "serve -s coverage -p 8081",
     "compile": "tsc"
   },

@@ -20,7 +20,7 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
     const liftPassType = req.query.type;
     const [rows, fields] = await connection.query(
       "INSERT INTO `base_price` (type, cost) VALUES (?, ?) " +
-      "ON DUPLICATE KEY UPDATE cost = ?",
+        "ON DUPLICATE KEY UPDATE cost = ?",
       [liftPassType, liftPassCost, liftPassCost]
     );
 
@@ -79,12 +79,12 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
             cost = Math.ceil(result.cost * 0.4);
           }
         } else {
-          cost = 0
+          cost = 0;
         }
       }
     }
 
-    res.json({ cost })
+    res.json({ cost });
   });
   return { app, connection };
 }
@@ -94,7 +94,7 @@ function createRepository(connection: any) {
 }
 
 class RepositoryUsingMySQL implements Repository {
-  constructor(private readonly connection) { }
+  constructor(private readonly connection) {}
 
   async getHolidays() {
     const result = await this.connection.query("SELECT * FROM `holidays`");

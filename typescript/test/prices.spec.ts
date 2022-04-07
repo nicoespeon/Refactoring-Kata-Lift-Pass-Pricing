@@ -37,38 +37,19 @@ describe("prices", () => {
 
   describe("when type is night", () => {
     const nightTestCases: TestCase[] = [
-      { type: "night", expectedCost: 0 },
       { type: "night", expectedCost: 19, age: 14 },
-      { type: "night", expectedCost: 8, age: 65 },
-      { type: "night", expectedCost: 0, age: 5 },
     ];
     runTestCases(nightTestCases);
   });
 
   describe("when type is 1jour", () => {
-    const dayTestCases: TestCase[] = [
-      { type: "1jour", expectedCost: 35 },
-      { type: "1jour", expectedCost: 25, age: 14 },
-      { type: "1jour", expectedCost: 27, age: 65 },
-      { type: "1jour", expectedCost: 35, age: 64 },
-      { type: "1jour", expectedCost: 35, age: 15 },
-    ];
-    runTestCases(dayTestCases);
-
     const monday1 = new Date("2022-02-21T12:00:00");
-    const monday2 = new Date("2022-02-21T12:00:00");
     const holidayMonday1 = new Date("2019-02-18T12:00:00");
-    const holidayMonday2 = new Date("2019-02-25T12:00:00");
-    const holidayMonday3 = new Date("2019-03-04T12:00:00");
 
     describe("when date is a monday", () => {
       const mondayTestCases: TestCase[] = [
         { type: "1jour", expectedCost: 23, date: monday1 },
-        { type: "1jour", expectedCost: 23, age: 15, date: monday1 },
-        { type: "1jour", expectedCost: 23, age: 15, date: monday2 },
         { type: "1jour", expectedCost: 35, age: 15, date: holidayMonday1 },
-        { type: "1jour", expectedCost: 35, age: 15, date: holidayMonday2 },
-        { type: "1jour", expectedCost: 35, age: 15, date: holidayMonday3 },
       ];
       runTestCases(mondayTestCases);
     });

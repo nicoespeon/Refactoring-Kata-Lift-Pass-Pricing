@@ -31,7 +31,9 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
   });
 
   app.get("/prices", async (req, res) => {
-    const cost = await computePrice(req.query, repository);
+    const age = req.query.age ? parseInt(req.query.age, 10) : undefined;
+    const { type, date } = req.query;
+    const cost = await computePrice({ type, date, age }, repository);
 
     res.json({ cost });
   });

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { computePrice } from "./computePrice";
-import { Repository, Holiday } from "./repository";
+import { Repository } from "./repository";
 
 class RepositoryUsingMemory implements Repository {
   constructor(
@@ -9,11 +9,13 @@ class RepositoryUsingMemory implements Repository {
   ) {}
 
   async getHolidays() {
-    return this.holidays.map(holiday => ({ holiday: new Date(holiday) }));
+    return this.holidays.map((holiday) => ({ holiday: new Date(holiday) }));
   }
 
   async getBasePrice(type: string) {
-    return { cost: this.basePrices[type] || 0 };
+    // Anything but 0 to avoid false positives in tests
+    const defaultBasePrice = 12;
+    return { cost: this.basePrices[type] || defaultBasePrice };
   }
 }
 
@@ -24,6 +26,15 @@ describe("Compute Price", () => {
     it("returns 0 if age is below 6", async () => {
       const price = await computePrice(
         { type: "night", age: 5, date: ANY_DATE },
+        new RepositoryUsingMemory()
+      );
+
+      expect(price).to.eq(0);
+    });
+
+    it("returns 0 if age is not provided", async () => {
+      const price = await computePrice(
+        { type: "night", date: ANY_DATE },
         new RepositoryUsingMemory()
       );
 
@@ -122,6 +133,6 @@ describe("Compute Price", () => {
 
         expect(price).to.eq(100);
       });
-    })
+    });
   });
 });

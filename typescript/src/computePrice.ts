@@ -1,62 +1,72 @@
-import { Repository } from "./repository";
+import { Holiday, Repository } from "./repository";
+
+interface PriceParameters {
+  age?: number;
+  type: "1jour" | "night";
+  date: string;
+}
 
 export async function computePrice(
-  { age, type, date }: { age?: number; type: "1jour" | "night"; date: string },
+  params: PriceParameters,
   repository: Repository
 ): Promise<number> {
-  const result = await repository.getBasePrice(type);
+  const result = await repository.getBasePrice(params.type);
+  const holidays = await repository.getHolidays();
+  const reduction = computeReduction(params, holidays);
+  return Math.ceil(reducePrice(result.cost, reduction));
+}
 
-  let { cost } = result;
+function reducePrice(price: number, reduction: number): number {
+  return price * (1 - reduction / 100);
+}
 
-  if (typeof age === "number" && age < 6) {
-    cost = 0;
-  } else {
-    if (type !== "night") {
-      const holidays = await repository.getHolidays();
+function computeReduction(
+  { age, type, date }: PriceParameters,
+  holidays: Holiday[]
+): number {
+  const reduction = computeDateReduction(holidays, date);
 
-      let isHoliday;
-      let reduction = 0;
-      for (let row of holidays) {
-        let holiday = row.holiday;
-        if (date) {
-          let d = new Date(date);
-          if (
-            d.getFullYear() === holiday.getFullYear() &&
-            d.getMonth() === holiday.getMonth() &&
-            d.getDate() === holiday.getDate()
-          ) {
-            isHoliday = true;
-          }
-        }
-      }
+  if (age === undefined) {
+    return type === "night" ? 100 : reduction;
+  }
 
-      if (!isHoliday && new Date(date).getDay() === 1) {
-        reduction = 35;
-      }
+  if (age < 6) {
+    return 100;
+  }
 
-      // TODO apply reduction for others
-      if (typeof age === "number" && age < 15) {
-        cost = Math.ceil(result.cost * 0.7);
-      } else {
-        if (age === undefined) {
-          cost = Math.ceil(result.cost * (1 - reduction / 100));
-        } else {
-          if (age > 64) {
-            cost = Math.ceil(result.cost * 0.75 * (1 - reduction / 100));
-          } else {
-            cost = Math.ceil(result.cost * (1 - reduction / 100));
-          }
-        }
-      }
-    } else {
-      if (typeof age === "number" && age >= 6) {
-        if (age > 64) {
-          cost = Math.ceil(result.cost * 0.4);
-        }
-      } else {
-        cost = 0;
+  if (type === "night") {
+    return age > 64 ? 60 : 0;
+  }
+
+  // TODO apply reduction for others
+  if (age < 15) {
+    return 30;
+  }
+
+  if (age > 64) {
+    return reduction + 25;
+  }
+
+  return reduction;
+}
+
+function computeDateReduction(holidays: Holiday[], date: string): number {
+  let isHoliday = false;
+  for (let row of holidays) {
+    const holiday = row.holiday;
+    if (date) {
+      const d = new Date(date);
+      if (
+        d.getFullYear() === holiday.getFullYear() &&
+        d.getMonth() === holiday.getMonth() &&
+        d.getDate() === holiday.getDate()
+      ) {
+        isHoliday = true;
       }
     }
   }
-  return cost;
+
+  const isMonday = new Date(date).getDay() === 1;
+
+  return !isHoliday && isMonday ? 35 : 0;
 }

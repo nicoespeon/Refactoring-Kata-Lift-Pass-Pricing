@@ -1,9 +1,10 @@
+import { DateTime } from "./DateTime";
 import { Holiday, Repository } from "./repository";
 
 interface PriceParameters {
   age?: number;
   type: "1jour" | "night";
-  date: string;
+  date?: string;
 }
 
 export async function computePrice(
@@ -13,18 +14,21 @@ export async function computePrice(
   const result = await repository.getBasePrice(params.type);
   const holidays = await repository.getHolidays();
   const reduction = computeReduction(params, holidays);
-  return Math.ceil(reducePrice(result.cost, reduction));
+  return applyReduction(result.cost, reduction);
 }
 
-function reducePrice(price: number, reduction: number): number {
-  return price * (1 - reduction / 100);
+function applyReduction(price: number, reduction: number): number {
+  return Math.ceil(price * (1 - reduction / 100));
 }
 
 function computeReduction(
   { age, type, date }: PriceParameters,
   holidays: Holiday[]
 ): number {
-  const reduction = computeDateReduction(holidays, date);
+  const reduction = computeDateReduction(
+    holidays,
+    date ? new DateTime(date) : undefined
+  );
 
   if (age === undefined) {
     return type === "night" ? 100 : reduction;
@@ -50,23 +54,9 @@ function computeReduction(
   return reduction;
 }
 
-function computeDateReduction(holidays: Holiday[], date: string): number {
-  let isHoliday = false;
-  for (let row of holidays) {
-    const holiday = row.holiday;
-    if (date) {
-      const d = new Date(date);
-      if (
-        d.getFullYear() === holiday.getFullYear() &&
-        d.getMonth() === holiday.getMonth() &&
-        d.getDate() === holiday.getDate()
-      ) {
-        isHoliday = true;
-      }
-    }
-  }
+function computeDateReduction(holidays: Holiday[], date?: DateTime): number {
+  if (!date) return 0;
 
-  const isMonday = new Date(date).getDay() === 1;
-
-  return !isHoliday && isMonday ? 35 : 0;
+  const isHoliday = holidays.some(({ holiday }) => date.isSameDay(holiday));
+  return date.isMonday && !isHoliday ? 35 : 0;
 }

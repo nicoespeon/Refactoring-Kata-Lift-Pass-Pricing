@@ -31,6 +31,8 @@ async function createApp({ port }: { port: number } = { port: 3306 }) {
   });
 
   app.get("/prices", async (req, res) => {
+    // TODO: handle when req.query is has many passes
+    console.log("query is", req.query);
     const age = req.query.age ? parseInt(req.query.age, 10) : undefined;
     const { type, date } = req.query;
     const cost = await computePrice({ type, date, age }, repository);

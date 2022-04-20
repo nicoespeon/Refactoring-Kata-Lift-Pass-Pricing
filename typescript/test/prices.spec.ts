@@ -1,12 +1,22 @@
-import { assert, expect } from "chai";
+import { expect } from "chai";
 import request from "supertest-as-promised";
 import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { createApp } from "../src/prices";
 
-type TestCase = {
+type SinglePassTestCase = {
   type: "1jour" | "night";
   age?: number | undefined;
   date?: Date | undefined;
+  expectedCost: number;
+};
+
+type ManyPassesTestCase = {
+  label: string;
+  params: {
+    type: "1jour" | "night";
+    age?: number | undefined;
+    date?: Date | undefined;
+  }[];
   expectedCost: number;
 };
 
@@ -35,65 +45,98 @@ describe("prices", () => {
     connection.close();
   });
 
-  describe("when type is night", () => {
-    const nightTestCases: TestCase[] = [
-      { type: "night", expectedCost: 19, age: 14 },
-    ];
-    runTestCases(nightTestCases);
-  });
+  const monday = new Date("2022-02-21T12:00:00");
+  const holidayMonday = new Date("2019-02-18T12:00:00");
+  const sunday = new Date("2022-02-20T12:00:00");
 
-  describe("when type is 1jour", () => {
-    const monday1 = new Date("2022-02-21T12:00:00");
-    const holidayMonday1 = new Date("2019-02-18T12:00:00");
-
-    describe("when date is a monday", () => {
-      const mondayTestCases: TestCase[] = [
-        { type: "1jour", expectedCost: 23, date: monday1 },
-        { type: "1jour", expectedCost: 35, age: 15, date: holidayMonday1 },
-      ];
-      runTestCases(mondayTestCases);
+  describe("for a single lift pass", () => {
+    describe("when type is night", () => {
+      runTestCase({ type: "night", age: 14, expectedCost: 19 });
     });
 
-    const sunday = new Date("2022-02-20T12:00:00");
-    describe("when date is a sunday", () => {
-      const sundayTestCase: TestCase = {
-        type: "1jour",
-        expectedCost: 35,
-        age: 15,
-        date: sunday,
-      };
-      runTestCase(sundayTestCase);
-    });
-  });
+    describe("when type is 1jour", () => {
+      describe("when date is a monday", () => {
+        runTestCase({ type: "1jour", date: monday, expectedCost: 23 });
 
-  function runTestCases(testCases: TestCase[]) {
-    for (const testCase of testCases) {
-      runTestCase(testCase);
+        runTestCase({
+          type: "1jour",
+          age: 15,
+          date: holidayMonday,
+          expectedCost: 35,
+        });
+      });
+
+      describe("when date is a sunday", () => {
+        runTestCase({
+          type: "1jour",
+          age: 15,
+          date: sunday,
+          expectedCost: 35,
+        });
+      });
+    });
+
+    function runTestCase(testCase: SinglePassTestCase) {
+      let description = `returns ${testCase.expectedCost}`;
+      description = testCase.age
+        ? `${description} - age is ${testCase.age}`
+        : description;
+      description = testCase.date
+        ? `${description} and date is ${testCase.date}`
+        : description;
+
+      it(description, async () => {
+        let pricesQuery = `/prices?type=${testCase.type}`;
+        if (testCase.age) {
+          pricesQuery = `${pricesQuery}&age=${testCase.age}`;
+        }
+        if (testCase.date) {
+          pricesQuery = `${pricesQuery}&date=${testCase.date.toISOString()}`;
+        }
+        const response = await request(app).get(pricesQuery);
+
+        const expectedResult = { cost: testCase.expectedCost };
+        expect(response.body).deep.equal(expectedResult);
+      });
     }
-  }
+  });
 
-  function runTestCase(testCase: TestCase) {
-    let description = `returns ${testCase.expectedCost}`;
-    description = testCase.age
-      ? `${description} - age is ${testCase.age}`
-      : description;
-    description = testCase.date
-      ? `${description} and date is ${testCase.date}`
-      : description;
-
-    it(description, async () => {
-      let pricesQuery = `/prices?type=${testCase.type}`;
-      if (testCase.age) {
-        pricesQuery = `${pricesQuery}&age=${testCase.age}`;
-      }
-      if (testCase.date) {
-        pricesQuery = `${pricesQuery}&date=${testCase.date.toISOString()}`;
-      }
-      const response = await request(app).get(pricesQuery);
-
-      const expectedResult = { cost: testCase.expectedCost };
-
-      expect(response.body).deep.equal(expectedResult);
+  describe("for a group of lift passes", () => {
+    describe("when type is night", () => {
+      runTestCase({
+        label: "only one lift pass, age is 15 and type is night",
+        params: [
+          { type: "night", age: 14 },
+          { type: "night", age: 15 },
+        ],
+        expectedCost: 19,
+      });
     });
-  }
+
+    function runTestCase(testCase: ManyPassesTestCase) {
+      const description = `returns ${testCase.expectedCost} - ${testCase.label}`;
+
+      it(description, async () => {
+        const queryParams = testCase.params
+          .map(({ type, age, date }, index) => {
+            // TODO: build the query properly. We want a passes array with all params.
+            let query = `pass${index}[type]=${type}`;
+            if (age) {
+              query += `&pass${index}[age]=${age}`;
+            }
+            if (date) {
+              query += `&pass${index}[date]=${date}`;
+            }
+            return query;
+          })
+          .concat("&");
+        const pricesQuery = `/prices?${queryParams}`;
+
+        const response = await request(app).get(pricesQuery);
+
+        const expectedResult = { cost: testCase.expectedCost };
+        expect(response.body).deep.equal(expectedResult);
+      });
+    }
+  });
 });

@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import qs from "qs";
 import request from "supertest-as-promised";
 import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { createApp } from "../src/prices";
@@ -104,12 +105,12 @@ describe("prices", () => {
   describe("for a group of lift passes", () => {
     describe("when type is night", () => {
       runTestCase({
-        label: "only one lift pass, age is 15 and type is night",
+        label: "two lift passes, age are 14 & 15 and type is night",
         params: [
           { type: "night", age: 14 },
           { type: "night", age: 15 },
         ],
-        expectedCost: 19,
+        expectedCost: 38,
       });
     });
 
@@ -117,19 +118,7 @@ describe("prices", () => {
       const description = `returns ${testCase.expectedCost} - ${testCase.label}`;
 
       it(description, async () => {
-        const queryParams = testCase.params
-          .map(({ type, age, date }, index) => {
-            // TODO: build the query properly. We want a passes array with all params.
-            let query = `pass${index}[type]=${type}`;
-            if (age) {
-              query += `&pass${index}[age]=${age}`;
-            }
-            if (date) {
-              query += `&pass${index}[date]=${date}`;
-            }
-            return query;
-          })
-          .concat("&");
+        const queryParams = qs.stringify(testCase.params);
         const pricesQuery = `/prices?${queryParams}`;
 
         const response = await request(app).get(pricesQuery);

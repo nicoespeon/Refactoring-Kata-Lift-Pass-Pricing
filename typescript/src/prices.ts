@@ -62,51 +62,52 @@ async function computePrice(
   repository: RepositoryUsingMySQL,
   { type, age, date }: { type: any; age: any; date: any }
 ) {
-  const basePrice = await repository.getBasePrice(type);
-  let cost = 0;
-  let reduction = 0;
+  if (age < 6) return 0;
 
-  if (age < 6) {
-    return 0;
-  }
+  const { cost } = await repository.getBasePrice(type);
 
   if (type === "night") {
-    if (age > 64) {
-      return Math.ceil(basePrice.cost * 0.4);
-    }
-    return basePrice.cost;
+    return age > 64 ? Math.ceil(cost * 0.4) : cost;
   }
 
-  const holidays = await repository.getHolidays();
-  let isHoliday;
-  for (let row of holidays) {
-    let holiday = row.holiday;
-    if (date) {
-      let d = new Date(date);
-      if (
-        d.getFullYear() === holiday.getFullYear() &&
-        d.getMonth() === holiday.getMonth() &&
-        d.getDate() === holiday.getDate()
-      ) {
-        isHoliday = true;
-      }
-    }
-  }
-
-  if (!isHoliday && new Date(date).getDay() === 1) {
-    reduction = 35;
-  }
+  const reduction = await computeReduction(repository, date);
 
   // TODO apply reduction for others
   if (age < 15) {
-    cost = Math.ceil(basePrice.cost * 0.7);
-  } else if (age > 64) {
-    cost = Math.ceil(basePrice.cost * 0.75 * (1 - reduction / 100));
-  } else {
-    cost = Math.ceil(basePrice.cost * (1 - reduction / 100));
+    return Math.ceil(cost * 0.7);
   }
 
-  return cost;
+  if (age > 64) {
+    return Math.ceil(cost * 0.75 * (1 - reduction / 100));
+  }
+
+  return Math.ceil(cost * (1 - reduction / 100));
+}
+
+async function computeReduction(repository: Repository, date: any) {
+  const isHoliday = await isDateHoliday(repository, date);
+  const isMonday = new Date(date).getDay() === 1;
+
+  return !isHoliday && isMonday ? 35 : 0;
+}
+
+async function isDateHoliday(repository: Repository, date: any) {
+  const holidays = await repository.getHolidays();
+
+  for (let row of holidays) {
+    let holiday = row.holiday;
+    if (!date) continue;
+
+    let d = new Date(date);
+    const isSameDate =
+      d.getFullYear() === holiday.getFullYear() &&
+      d.getMonth() === holiday.getMonth() &&
+      d.getDate() === holiday.getDate();
+
+    if (isSameDate) return true;
+  }
+
+  return false;
 }
 
 export { createApp };

@@ -28,58 +28,7 @@ async function createApp() {
     const { type, age, date } = req.query;
     const repository = new RepositoryUsingMySQL(connection);
 
-    const basePrice = await repository.getBasePrice(type);
-    let cost = 0;
-    let reduction = 0;
-
-    if (age < 6) {
-      cost = 0;
-    } else {
-      if (type !== "night") {
-        const holidays = await repository.getHolidays();
-        let isHoliday;
-        for (let row of holidays) {
-          let holiday = row.holiday;
-          if (date) {
-            let d = new Date(date);
-            if (
-              d.getFullYear() === holiday.getFullYear() &&
-              d.getMonth() === holiday.getMonth() &&
-              d.getDate() === holiday.getDate()
-            ) {
-              isHoliday = true;
-            }
-          }
-        }
-
-        if (!isHoliday && new Date(date).getDay() === 1) {
-          reduction = 35;
-        }
-
-        // TODO apply reduction for others
-        if (age < 15) {
-          cost = Math.ceil(basePrice.cost * 0.7);
-        } else {
-          if (age === undefined) {
-            cost = Math.ceil(basePrice.cost * (1 - reduction / 100));
-          } else {
-            if (age > 64) {
-              cost = Math.ceil(basePrice.cost * 0.75 * (1 - reduction / 100));
-            } else {
-              cost = Math.ceil(basePrice.cost * (1 - reduction / 100));
-            }
-          }
-        }
-      } else {
-        if (age >= 6) {
-          if (age > 64) {
-            cost = Math.ceil(basePrice.cost * 0.4);
-          } else {
-            cost = basePrice.cost;
-          }
-        }
-      }
-    }
+    let cost = await computePrice(repository, type, age, date);
 
     res.json({ cost });
   });
@@ -107,6 +56,67 @@ class RepositoryUsingMySQL implements Repository {
   async getHolidays(): Promise<any> {
     return (await this.connection.query("SELECT * FROM `holidays`"))[0];
   }
+}
+
+async function computePrice(
+  repository: RepositoryUsingMySQL,
+  type: any,
+  age: any,
+  date: any
+) {
+  const basePrice = await repository.getBasePrice(type);
+  let cost = 0;
+  let reduction = 0;
+
+  if (age < 6) {
+    cost = 0;
+  } else {
+    if (type !== "night") {
+      const holidays = await repository.getHolidays();
+      let isHoliday;
+      for (let row of holidays) {
+        let holiday = row.holiday;
+        if (date) {
+          let d = new Date(date);
+          if (
+            d.getFullYear() === holiday.getFullYear() &&
+            d.getMonth() === holiday.getMonth() &&
+            d.getDate() === holiday.getDate()
+          ) {
+            isHoliday = true;
+          }
+        }
+      }
+
+      if (!isHoliday && new Date(date).getDay() === 1) {
+        reduction = 35;
+      }
+
+      // TODO apply reduction for others
+      if (age < 15) {
+        cost = Math.ceil(basePrice.cost * 0.7);
+      } else {
+        if (age === undefined) {
+          cost = Math.ceil(basePrice.cost * (1 - reduction / 100));
+        } else {
+          if (age > 64) {
+            cost = Math.ceil(basePrice.cost * 0.75 * (1 - reduction / 100));
+          } else {
+            cost = Math.ceil(basePrice.cost * (1 - reduction / 100));
+          }
+        }
+      }
+    } else {
+      if (age >= 6) {
+        if (age > 64) {
+          cost = Math.ceil(basePrice.cost * 0.4);
+        } else {
+          cost = basePrice.cost;
+        }
+      }
+    }
+  }
+  return cost;
 }
 
 export { createApp };

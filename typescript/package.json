@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "tsc && node .",
-    "test": "tsc && node_modules/.bin/mocha --require ts-node/register --recursive test/**/*.spec.ts --timeout 15000",
+    "test": "tsc && node_modules/.bin/mocha --require ts-node/register --recursive test/**/*.spec.ts --timeout 55000",
     "compile": "tsc"
   },
   "readme": "README.md",

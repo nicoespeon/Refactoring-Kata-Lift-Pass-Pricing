@@ -23,6 +23,7 @@ async function createApp() {
 
     res.json();
   });
+
   app.get("/prices", async (req, res) => {
     const result = (
       await connection.query(

@@ -32,8 +32,11 @@ async function createApp() {
       )
     )[0][0];
 
+    let cost = 0;
+    let reduction = 0;
+
     if (req.query.age < 6) {
-      res.json({ cost: 0 });
+      cost = 0;
     } else {
       if (req.query.type !== "night") {
         const holidays = (
@@ -41,7 +44,6 @@ async function createApp() {
         )[0];
 
         let isHoliday;
-        let reduction = 0;
         for (let row of holidays) {
           let holiday = row.holiday;
           if (req.query.date) {
@@ -62,33 +64,29 @@ async function createApp() {
 
         // TODO apply reduction for others
         if (req.query.age < 15) {
-          res.json({ cost: Math.ceil(result.cost * 0.7) });
+          cost = Math.ceil(result.cost * 0.7);
         } else {
           if (req.query.age === undefined) {
-            let cost = result.cost * (1 - reduction / 100);
-            res.json({ cost: Math.ceil(cost) });
+            cost = Math.ceil(result.cost * (1 - reduction / 100));
           } else {
             if (req.query.age > 64) {
-              let cost = result.cost * 0.75 * (1 - reduction / 100);
-              res.json({ cost: Math.ceil(cost) });
+              cost = Math.ceil(result.cost * 0.75 * (1 - reduction / 100));
             } else {
-              let cost = result.cost * (1 - reduction / 100);
-              res.json({ cost: Math.ceil(cost) });
+              cost = Math.ceil(result.cost * (1 - reduction / 100));
             }
           }
         }
       } else {
         if (req.query.age >= 6) {
           if (req.query.age > 64) {
-            res.json({ cost: Math.ceil(result.cost * 0.4) });
+            cost = Math.ceil(result.cost * 0.4);
           } else {
-            res.json(result);
+            cost = result.cost;
           }
-        } else {
-          res.json({ cost: 0 });
         }
       }
     }
+    res.json({ cost });
   });
 
   return { app, connection };

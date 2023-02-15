@@ -25,29 +25,23 @@ async function createApp() {
   });
 
   app.get("/prices", async (req, res) => {
-    const result = (
-      await connection.query(
-        "SELECT cost FROM `base_price` " + "WHERE `type` = ? ",
-        [req.query.type]
-      )
-    )[0][0];
+    const { type, age, date } = req.query;
+    const repository = new RepositoryUsingMySQL(connection);
 
+    const basePrice = await repository.getBasePrice(type);
     let cost = 0;
     let reduction = 0;
 
-    if (req.query.age < 6) {
+    if (age < 6) {
       cost = 0;
     } else {
-      if (req.query.type !== "night") {
-        const holidays = (
-          await connection.query("SELECT * FROM `holidays`")
-        )[0];
-
+      if (type !== "night") {
+        const holidays = await repository.getHolidays();
         let isHoliday;
         for (let row of holidays) {
           let holiday = row.holiday;
-          if (req.query.date) {
-            let d = new Date(req.query.date);
+          if (date) {
+            let d = new Date(date);
             if (
               d.getFullYear() === holiday.getFullYear() &&
               d.getMonth() === holiday.getMonth() &&
@@ -58,38 +52,61 @@ async function createApp() {
           }
         }
 
-        if (!isHoliday && new Date(req.query.date).getDay() === 1) {
+        if (!isHoliday && new Date(date).getDay() === 1) {
           reduction = 35;
         }
 
         // TODO apply reduction for others
-        if (req.query.age < 15) {
-          cost = Math.ceil(result.cost * 0.7);
+        if (age < 15) {
+          cost = Math.ceil(basePrice.cost * 0.7);
         } else {
-          if (req.query.age === undefined) {
-            cost = Math.ceil(result.cost * (1 - reduction / 100));
+          if (age === undefined) {
+            cost = Math.ceil(basePrice.cost * (1 - reduction / 100));
           } else {
-            if (req.query.age > 64) {
-              cost = Math.ceil(result.cost * 0.75 * (1 - reduction / 100));
+            if (age > 64) {
+              cost = Math.ceil(basePrice.cost * 0.75 * (1 - reduction / 100));
             } else {
-              cost = Math.ceil(result.cost * (1 - reduction / 100));
+              cost = Math.ceil(basePrice.cost * (1 - reduction / 100));
             }
           }
         }
       } else {
-        if (req.query.age >= 6) {
-          if (req.query.age > 64) {
-            cost = Math.ceil(result.cost * 0.4);
+        if (age >= 6) {
+          if (age > 64) {
+            cost = Math.ceil(basePrice.cost * 0.4);
           } else {
-            cost = result.cost;
+            cost = basePrice.cost;
           }
         }
       }
     }
+
     res.json({ cost });
   });
 
   return { app, connection };
+}
+
+interface Repository {
+  getBasePrice(type: string): Promise<any>;
+  getHolidays(): Promise<any>;
+}
+
+class RepositoryUsingMySQL implements Repository {
+  constructor(private connection: any) {}
+
+  async getBasePrice(type: string): Promise<any> {
+    return (
+      await this.connection.query(
+        "SELECT cost FROM `base_price` " + "WHERE `type` = ? ",
+        [type]
+      )
+    )[0][0];
+  }
+
+  async getHolidays(): Promise<any> {
+    return (await this.connection.query("SELECT * FROM `holidays`"))[0];
+  }
 }
 
 export { createApp };

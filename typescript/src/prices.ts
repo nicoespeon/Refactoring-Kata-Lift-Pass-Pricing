@@ -28,7 +28,7 @@ async function createApp() {
     const { type, age, date } = req.query;
     const repository = new RepositoryUsingMySQL(connection);
 
-    let cost = await computePrice(repository, type, age, date);
+    const cost = await computePrice(repository, { type, age, date });
 
     res.json({ cost });
   });
@@ -60,9 +60,7 @@ class RepositoryUsingMySQL implements Repository {
 
 async function computePrice(
   repository: RepositoryUsingMySQL,
-  type: any,
-  age: any,
-  date: any
+  { type, age, date }: { type: any; age: any; date: any }
 ) {
   const basePrice = await repository.getBasePrice(type);
   let cost = 0;

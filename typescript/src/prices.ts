@@ -90,6 +90,7 @@ async function createApp() {
       }
     }
   });
+
   return { app, connection };
 }
 

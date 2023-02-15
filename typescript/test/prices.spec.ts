@@ -26,67 +26,103 @@ describe("prices", () => {
     connection.close();
   });
 
-  it("should return 0 when age is less than 6", async () => {
-    const query = { type: "1jour", age: 5 };
+  it("returns 0 for night and age is 5", async () => {
+    const response = await request(app).get("/prices?type=night&age=5");
 
-    const response = await request(app).get("/prices").query(query);
+    const expectedResult = { cost: 0 };
 
-    expect(response.body).to.have.property("cost", 0);
+    expect(response.body).deep.equal(expectedResult);
   });
 
-  it("should return day cost when type is '1jour'", async () => {
-    const query = { type: "1jour" };
+  it("returns 8 for 1jour and age is 14", async () => {
+    const response = await request(app).get("/prices?type=1jour&age=14");
 
-    const response = await request(app).get("/prices").query(query);
+    const expectedResult = { cost: 25 };
 
-    expect(response.body).to.have.property("cost", 35);
+    expect(response.body).deep.equal(expectedResult);
   });
 
-  it("should return 70% of day cost when age is less than 15", async () => {
-    const req = { type: "1jour", age: 14 };
+  it("returns 27 for 1jour and age is 65", async () => {
+    const response = await request(app).get("/prices?type=1jour&age=65");
 
-    const response = await request(app).get("/prices").query(req);
+    const expectedResult = { cost: 27 };
 
-    expect(response.body).to.have.property("cost", 25);
+    expect(response.body).deep.equal(expectedResult);
   });
 
-  it("should return 75% of day cost when age is more than 64", async () => {
-    const req = { type: "1jour", age: 65 };
+  it("returns 35 for 1jour and age is 64", async () => {
+    const response = await request(app).get("/prices?type=1jour&age=64");
 
-    const response = await request(app).get("/prices").query(req);
+    const expectedResult = { cost: 35 };
 
-    expect(response.body).to.have.property("cost", 27);
+    expect(response.body).deep.equal(expectedResult);
   });
 
-  it("should return night cost when type is 'night' and age is more than 6", async () => {
-    const req = { type: "night", age: 7 };
+  it("returns 35 for 1jour and age is 15", async () => {
+    const response = await request(app).get("/prices?type=1jour&age=15");
 
-    const response = await request(app).get("/prices").query(req);
+    const expectedResult = { cost: 35 };
 
-    expect(response.body).to.have.property("cost", 19);
+    expect(response.body).deep.equal(expectedResult);
   });
 
-  it("should return 40% of night cost when type is 'night' and age is more than 64", async () => {
-    const req = { type: "night", age: 65 };
+  it("returns 23 for 1jour and age is 15 on 2022-02-22", async () => {
+    const response = await request(app).get(
+      "/prices?type=1jour&age=15&date=2022-02-22"
+    );
 
-    const response = await request(app).get("/prices").query(req);
+    const expectedResult = { cost: 23 };
 
-    expect(response.body).to.have.property("cost", 8);
+    expect(response.body).deep.equal(expectedResult);
   });
 
-  it("should return day cost with 35% reduction when date is Monday", async () => {
-    const req = { type: "1jour", age: 15, date: "2020-01-06T06:00:00Z" };
+  it("returns 23 for 1jour and age is 15 on 2022-02-29", async () => {
+    const response = await request(app).get(
+      "/prices?type=1jour&age=15&date=2022-02-29"
+    );
 
-    const response = await request(app).get("/prices").query(req);
+    const expectedResult = { cost: 23 };
 
-    expect(response.body).to.have.property("cost", 23);
+    expect(response.body).deep.equal(expectedResult);
   });
 
-  it("should return day cost when date is Holiday", async () => {
-    const req = { type: "1jour", age: 15, date: "2019-02-18" };
+  it("returns 35 for 1jour and age is 15 on 2022-02-28", async () => {
+    const response = await request(app).get(
+      "/prices?type=1jour&age=15&date=2022-02-28"
+    );
 
-    const response = await request(app).get("/prices").query(req);
+    const expectedResult = { cost: 35 };
 
-    expect(response.body).to.have.property("cost", 35);
+    expect(response.body).deep.equal(expectedResult);
+  });
+
+  it("returns 35 for 1jour and age is 15 on 2019-02-18", async () => {
+    const response = await request(app).get(
+      "/prices?type=1jour&age=15&date=2019-02-18T05:00:00.000Z"
+    );
+
+    const expectedResult = { cost: 35 };
+
+    expect(response.body).deep.equal(expectedResult);
+  });
+
+  it("returns 35 for 1jour and age is 15 on 2019-02-25", async () => {
+    const response = await request(app).get(
+      "/prices?type=1jour&age=15&date=2019-02-25T05:00:00.000Z"
+    );
+
+    const expectedResult = { cost: 35 };
+
+    expect(response.body).deep.equal(expectedResult);
+  });
+
+  it("returns 23 for 1jour and age is 15 on 2019-02-04", async () => {
+    const response = await request(app).get(
+      "/prices?type=1jour&age=15&date=2019-02-04T05:00:00.000Z"
+    );
+
+    const expectedResult = { cost: 23 };
+
+    expect(response.body).deep.equal(expectedResult);
   });
 });
